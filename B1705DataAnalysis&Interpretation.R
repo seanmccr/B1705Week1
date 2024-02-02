@@ -254,11 +254,210 @@ pie_chart <- ggplot(category_counts, aes(x = "", y = Proportion, fill = player_i
 print(pie_chart)
 
 
-####### COMPLETE 9.3 FROM WEEK 1 TASKS AT HOME #######
+# ----- 1.4. Challenges -----
+
+##### 1.4.1. Dealing with Missing Data #####
+# Set seed for reproducibility
+set.seed(123)
+# Generate a vector with 50 random observations from a normal distribution
+observations <- rnorm(50, mean = 10, sd = 5)
+# Randomly assign missing values to 10% of the observations
+missing_indices <- sample(1:50, 5)
+observations[missing_indices] <- NA
+# Print the vector with missing values
+print(observations)
+
+
+# Removing observations with missing values
+clean_observations <- observations[!is.na(observations)]
+# Printing the cleaned observations
+print(clean_observations)
+
+# Doing so removes a lot of observations, which we don't necessarily want
+
+# We can imputing missing values with a specific value, for example, 0
+imputed_observations_01 <- ifelse(is.na(observations), 0, observations)
+# Printing the imputed observations
+print(imputed_observations_01)
+
+# Often, we might want to use the mean of the vector.
+# Calculating the mean of the non-missing values
+mean_value <- mean(observations, na.rm = TRUE)
+print(mean_value)
+
+# Imputing missing values with the calculated mean
+imputed_observations_02 <- ifelse(is.na(observations), mean_value, observations)
+# Printing the imputed observations
+print(imputed_observations_02)
+
+# By putting the mean into the missing values, we can make data more reliable without removing missing values
+
+# This time, we will remove NA values in either variable
+# Creating a dataframe with two variables containing missing values
+data <- data.frame(
+  variable1 = c(1, NA, 3, 4, NA, 6),
+  variable2 = c(NA, 2, NA, 4, 5, NA)
+)
+# Printing the original dataframe
+print("Original Dataframe:")
+# Removing observations with a missing value in EITHER variable
+clean_data <- na.omit(data)
+# Printing the cleaned dataframe
+print("Cleaned Dataframe:")
+print(clean_data)
+
+# Here, we will put the mean of each column into the missing value entries
+# Loading the dplyr package for easier data manipulation
+library(dplyr)
+# Creating a dataframe with two variables containing missing values
+data <- data.frame(
+  variable1 = c(1, NA, 3, 4, NA, 6),
+  variable2 = c(NA, 2, NA, 4, 5, NA)
+)
+# Printing the original dataframe
+print("Original Dataframe:")
+print(data)
+
+# Function to replace NA with the mean of the column
+replace_na_with_mean <- function(x) {
+  x[is.na(x)] <- mean(x, na.rm = TRUE)
+  return(x)
+}
+# Applying the function to each column using `across`
+imputed_data <- data %>% mutate(across(everything(), replace_na_with_mean))
+# Printing the dataframe with imputed values
+print("Dataframe with Imputed Values:")
+print(imputed_data)
+
+# By doing this, we get imputed values at each stage, with the mean updated every time their is a new value imputed.
+
+##### 1.4.2. Managing Outliers #####
+
+# Remove outliers based on Z-scores
+# Generate a synthetic dataset
+set.seed(123) # for reproducibility
+data <- data.frame(value = rnorm(100, mean = 50, sd = 10)) # synthetic normal data
+# Function to calculate Z-scores
+calculate_z_score <- function(x) {
+  (x - mean(x)) / sd(x)
+}
+# Apply the function to calculate Z-scores for the dataset
+data$z_score <- calculate_z_score(data$value)
+# Define threshold for outliers
+lower_bound <- -3
+upper_bound <- 3
+# Remove outliers
+cleaned_data <- data[data$z_score > lower_bound & data$z_score < upper_bound, ]
+# View the cleaned data
+print(cleaned_data)
+
+# This approach again removes values, and is therefore problematic; the approach below imputes values based on z-score if they are missing
+# Generate a synthetic dataset
+set.seed(123) # for reproducibility
+data <- data.frame(value = rnorm(100, mean = 50, sd = 10)) # synthetic normal data
+# Function to calculate Z-scores
+calculate_z_score <- function(x) {
+  (x - mean(x)) / sd(x)
+}
+# Apply the function to calculate Z-scores for the dataset
+data$z_score <- calculate_z_score(data$value)
+# Define threshold for outliers
+lower_bound <- -3
+upper_bound <- 3
+# Impute outliers using the mean
+data$value[data$z_score < lower_bound] <- mean(data$value) - 3 * sd(data$value)
+data$value[data$z_score > upper_bound] <- mean(data$value) + 3 * sd(data$value)
+# Remove the z_score column if no longer needed
+data$z_score <- NULL
+# View the modified data
+print(data)
+
+# ----- 2. Data Analysis: Practice -----
+# Download dataset
+url <- "https://www.dropbox.com/scl/fi/fmqfeq6ivdrvnr4hy79ny/prac_14_dataset.csv?rlkey=spz5e5uq1b8if2eptvstxo7xj&dl=1"
+df <- read.csv(url)
+rm(url)
+
+# Boxplots
+boxplot(df)
+
+# CALCULATING THE MEASURES OF CENTRAL TENDANCY
+# Calculate the mean, median, and mode for each suitable variable in the dataframe 'df_mean_imputed'
+# Step 2: Create another new dataframe with no missing values by imputing missing values using the column mean
+df_mean_imputed <- df
+summary_stats <- data.frame(Variable=character(), Mean=numeric(), Median=numeric(), Mode=numeric(), stringsAsFactors=FALSE)
+
+for(column in names(df_mean_imputed)){
+  if(is.numeric(df_mean_imputed[[column]])) {
+    # Calculate mean, median, and mode
+    column_mean <- mean(df_mean_imputed[[column]], na.rm = TRUE)
+    column_median <- median(df_mean_imputed[[column]], na.rm = TRUE)
+    column_mode <- mode(df_mean_imputed[[column]])
+    
+    # Append the values to the summary_stats dataframe
+    summary_stats <- rbind(summary_stats, data.frame(Variable=column, Mean=column_mean, Median=column_median, Mode=column_mode))
+  }
+}
+# Print the summary statistics for all numerical variables
+print(summary_stats)
 
 
 
 
+# CALCULATING THE MEASURES OF VARIABILITY
+# Create a data frame to store the range and standard deviation values for each variable
+variable_stats <- data.frame(Variable=character(), Range=numeric(), SD=numeric(), stringsAsFactors=FALSE)
 
+for (column in names(df_mean_imputed)) {
+  if (is.numeric(df_mean_imputed[[column]])) {
+    # Calculate the range
+    column_range <- range(df_mean_imputed[[column]], na.rm = TRUE)
+    # Calculate the standard deviation
+    column_sd <- sd(df_mean_imputed[[column]], na.rm = TRUE)
+    # Append the results to the variable_stats data frame
+    variable_stats <- rbind(variable_stats, 
+                            data.frame(Variable=column, Range=diff(column_range), SD=column_sd))
+  }
+}
+
+# View the results
+print(variable_stats)
+
+
+# MEASURES OF DISTRIBUTION
+
+# The variable with the negative skew is 
+
+ggplot(data.frame(value=df_mean_imputed), aes(x = Var3)) +
+  geom_histogram(binwidth=1, fill="blue", color="black", alpha=0.7) +
+  labs(title="Negatively-Skewed Vector", x="Value", y="Frequency")
+
+ggplot(df_mean_imputed, aes(x=Var1)) +
+  geom_histogram(binwidth=1, fill="blue", color="black", alpha=0.7) +
+  labs(title="Histogram for Var1", x="Var1", y="Frequency")
+
+ggplot(df_mean_imputed, aes(x=Var2)) +
+  geom_histogram(binwidth=1, fill="blue", color="black", alpha=0.7) +
+  labs(title="Histogram for Var1", x="Var1", y="Frequency")
+
+ggplot(df_mean_imputed, aes(x=Var3)) +
+  geom_histogram(binwidth=1, fill="blue", color="black", alpha=0.7) +
+  labs(title="Histogram for Var1", x="Var1", y="Frequency")
+
+ggplot(df_mean_imputed, aes(x=Var5)) +
+  geom_histogram(binwidth=1, fill="blue", color="black", alpha=0.7) +
+  labs(title="Histogram for Var1", x="Var1", y="Frequency")
+
+ggplot(df_mean_imputed, aes(x=Var6)) +
+  geom_histogram(binwidth=1, fill="blue", color="black", alpha=0.7) +
+  labs(title="Histogram for Var1", x="Var1", y="Frequency")
+
+ggplot(df_mean_imputed, aes(x=Var7)) +
+  geom_histogram(binwidth=1, fill="blue", color="black", alpha=0.7) +
+  labs(title="Histogram for Var1", x="Var1", y="Frequency")
+
+ggplot(df_mean_imputed, aes(x=Var8)) +
+  geom_histogram(binwidth=1, fill="blue", color="black", alpha=0.7) +
+  labs(title="Histogram for Var1", x="Var1", y="Frequency")
 
 
